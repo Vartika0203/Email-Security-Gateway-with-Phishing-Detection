@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Email Details{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-envelope"></i> Email Analysis Result</h1>
+        <div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            {% if email.is_quarantined %}
+            <form method="POST" action="{{ url_for('release_email', email_id=email.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Release from Quarantine
+                </button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('delete_email', email_id=email.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this email?')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="result-card {% if results.is_phishing %}phishing{% else %}clean{% endif %}">
+        <h2>
+            {% if results.is_phishing %}
+                <i class="fas fa-exclamation-triangle" style="color:#fc8181;"></i> 
+                Phishing Detected!
+            {% else %}
+                <i class="fas fa-check-circle" style="color:#48bb78;"></i> 
+                Email Appears Clean
+            {% endif %}
+        </h2>
+        
+        <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 1rem;">
+            <div>
+                <strong>Phishing Score:</strong>
+                <div class="score-bar" style="max-width: 200px;">
+                    <div class="score-bar-fill 
+                        {% if results.phishing_score > 70 %}danger
+                        {% elif results.phishing_score > 40 %}warning
+                        {% else %}success{% endif %}" 
+                        style="width: {{ results.phishing_score }}%">
+                    </div>
+                </div>
+                {{ "%.1f"|format(results.phishing_score) }}%
+            </div>
+            <div>
+                <strong>Confidence:</strong> {{ "%.1f"|format(results.confidence) }}%
+            </div>
+            <div>
+                <strong>Severity:</strong> 
+                <span class="severity-badge {{ results.severity }}">{{ results.severity }}</span>
+            </div>
+            <div>
+                <strong>Threat Type:</strong> {{ results.threat_type or 'None' }}
+            </div>
+        </div>
+        
+        {% if results.threat_details %}
+        <div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(229,62,62,0.1); border-radius: 4px; border-left: 3px solid #fc8181;">
+            <strong>Threat Details:</strong> {{ results.threat_details }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Email Details -->
+    <div class="result-card">
+        <h3><i class="fas fa-info-circle"></i> Email Information</h3>
+        <table class="table" style="margin-top: 0.5rem;">
+            <tr>
+                <td><strong>Sender:</strong></td>
+                <td>{{ email.sender }}</td>
+            </tr>
+            <tr>
+                <td><strong>Recipient:</strong></td>
+                <td>{{ email.recipient }}</td>
+            </tr>
+            <tr>
+                <td><strong>Subject:</strong></td>
+                <td>{{ email.subject }}</td>
+            </tr>
+            <tr>
+                <td><strong>Time:</strong></td>
+                <td>{{ email.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            <tr>
+                <td><strong>Status:</strong></td>
+                <td>
+                    {% if email.is_phishing %}
+                        <span class="status-badge phishing">⚠️ Phishing</span>
+                    {% else %}
+                        <span class="status-badge clean">✅ Clean</span>
+                    {% endif %}
+                    {% if email.is_quarantined %}
+                        <span class="status-badge quarantined">🔒 Quarantined</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Header Analysis -->
+    <div class="result-card">
+        <h3><i class="fas fa-shield-alt"></i> Email Authentication</h3>
+        <table class="table" style="margin-top: 0.5rem;">
+            <tr>
+                <td><strong>SPF:</strong></td>
+                <td>
+                    {% if results.spf_pass %}
+                        <span style="color:#48bb78;">✅ Pass</span>
+                    {% else %}
+                        <span style="color:#fc8181;">❌ Fail</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td><strong>DKIM:</strong></td>
+                <td>
+                    {% if results.dkim_pass %}
+                        <span style="color:#48bb78;">✅ Pass</span>
+                    {% else %}
+                        <span style="color:#fc8181;">❌ Fail</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td><strong>DMARC:</strong></td>
+                <td>
+                    {% if results.dmarc_pass %}
+                        <span style="color:#48bb78;">✅ Pass</span>
+                    {% else %}
+                        <span style="color:#fc8181;">❌ Fail</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- URLs Found -->
+    <div class="result-card">
+        <h3><i class="fas fa-link"></i> URLs Found ({{ urls_found|length }})</h3>
+        {% if urls_found %}
+            <ul class="url-list">
+                {% for url in urls_found %}
+                    <li class="
+                        {% if url in malicious_urls %}malicious
+                        {% elif url in suspicious_urls %}suspicious
+                        {% else %}clean{% endif %}">
+                        <i class="fas 
+                            {% if url in malicious_urls %}fa-times-circle
+                            {% elif url in suspicious_urls %}fa-exclamation-circle
+                            {% else %}fa-check-circle{% endif %}">
+                        </i>
+                        {{ url }}
+                        {% if url in malicious_urls %}
+                            <span class="severity-badge critical">Malicious</span>
+                        {% elif url in suspicious_urls %}
+                            <span class="severity-badge medium">Suspicious</span>
+                        {% else %}
+                            <span class="severity-badge low">Clean</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color:#a0aec0;">No URLs found in this email</p>
+        {% endif %}
+    </div>
+
+    <!-- Email Body Preview -->
+    <div class="result-card">
+        <h3><i class="fas fa-envelope"></i> Email Content</h3>
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 0.9rem; max-height: 300px; overflow-y: auto;">
+            {{ email.full_body }}
+        </div>
+    </div>
+
+    {% if email.headers %}
+    <div class="result-card">
+        <h3><i class="fas fa-code"></i> Headers</h3>
+        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; font-size: 0.8rem; font-family: monospace; max-height: 200px; overflow-y: auto; white-space: pre-wrap;">
+            {{ email.headers }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

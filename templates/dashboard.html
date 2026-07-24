@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div>
+            <h1 class="page-title">🚀 Security Dashboard</h1>
+            <p class="page-subtitle">Real-time email threat monitoring & protection</p>
+        </div>
+        <a href="{{ url_for('analyze') }}" class="btn-primary">
+            <i class="fas fa-plus-circle"></i> Analyze Email
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-row">
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="stat-icon">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ total_emails|default(0) }}</span>
+                <span class="stat-label">Total Emails</span>
+            </div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ phishing_emails|default(0) }}</span>
+                <span class="stat-label">Phishing Detected</span>
+            </div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stat-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ quarantined_emails|default(0) }}</span>
+                <span class="stat-label">Quarantined</span>
+            </div>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="stat-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ alerts|default(0) }}</span>
+                <span class="stat-label">Active Alerts</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Scan -->
+    <div class="quick-scan">
+        <h3><i class="fas fa-bolt" style="color: #f093fb;"></i> Quick Email Scan</h3>
+        <form method="POST" action="{{ url_for('analyze') }}" class="scan-form">
+            <input type="email" name="sender" placeholder="Sender Email" required>
+            <input type="text" name="subject" placeholder="Subject">
+            <textarea name="body" placeholder="Paste email content here..." rows="2" required></textarea>
+            <button type="submit"><i class="fas fa-shield-alt"></i> Scan Now</button>
+        </form>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="two-col">
+        <!-- Left Column: Recent Emails -->
+        <div class="col">
+            <div class="section">
+                <div class="section-header">
+                    <h3><i class="fas fa-list" style="color: #4facfe;"></i> Recent Emails</h3>
+                    <a href="{{ url_for('quarantine') }}" class="link">View All →</a>
+                </div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Sender</th>
+                                <th>Subject</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_emails %}
+                                {% for email in recent_emails %}
+                                <tr>
+                                    <td><span class="time-badge">{{ email.timestamp.strftime('%H:%M') }}</span></td>
+                                    <td>{{ email.sender|truncate(20) }}</td>
+                                    <td>{{ email.subject|truncate(25) }}</td>
+                                    <td>
+                                        <div class="score-wrap">
+                                            <div class="score-bar">
+                                                <div class="score-fill {% if email.phishing_score > 70 %}danger{% elif email.phishing_score > 40 %}warning{% else %}success{% endif %}" 
+                                                     style="width: {{ email.phishing_score }}%;"></div>
+                                            </div>
+                                            <span class="score-text 
+                                                {% if email.phishing_score > 70 %}danger
+                                                {% elif email.phishing_score > 40 %}warning
+                                                {% else %}success{% endif %}">
+                                                {{ "%.0f"|format(email.phishing_score) }}%
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if email.is_phishing %}
+                                            <span class="badge danger">⚠️ Phishing</span>
+                                        {% else %}
+                                            <span class="badge success">✅ Clean</span>
+                                        {% endif %}
+                                        {% if email.is_quarantined %}
+                                            <span class="badge warning">🔒</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('email_detail', email_id=email.id) }}" class="btn-sm">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="empty">
+                                        <i class="fas fa-inbox" style="color: #4facfe;"></i>
+                                        <p>No emails analyzed yet</p>
+                                        <a href="{{ url_for('analyze') }}" class="btn-sm">Analyze your first email</a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Alerts & Blocklist -->
+        <div class="col">
+            <!-- Recent Alerts -->
+            <div class="section" style="background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.05) 100%); border-color: rgba(245, 87, 108, 0.2);">
+                <div class="section-header">
+                    <h3><i class="fas fa-bell" style="color: #f5576c;"></i> Recent Alerts</h3>
+                </div>
+                {% if recent_alerts %}
+                    {% for alert in recent_alerts %}
+                    <div class="alert-item {% if not alert.is_resolved %}active{% endif %}">
+                        <div class="alert-dot {{ alert.severity }}"></div>
+                        <div class="alert-info">
+                            <div class="alert-title">{{ alert.alert_type|title }}</div>
+                            <div class="alert-desc">{{ alert.description|truncate(40) }}</div>
+                            <div class="alert-meta">
+                                <span class="severity {{ alert.severity }}">{{ alert.severity }}</span>
+                                <span class="time">{{ alert.timestamp.strftime('%m-%d %H:%M') }}</span>
+                            </div>
+                        </div>
+                        {% if not alert.is_resolved %}
+                        <form method="POST" action="{{ url_for('resolve_alert', alert_id=alert.id) }}">
+                            <button type="submit" class="resolve-btn" title="Resolve">✓</button>
+                        </form>
+                        {% else %}
+                        <span class="resolved">✓ Resolved</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">
+                        <i class="fas fa-check-circle" style="color: #43e97b; font-size: 2rem;"></i>
+                        <p style="margin-top: 0.5rem; color: #43e97b;">All clear! No alerts.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Threat Intelligence -->
+            <div class="section" style="background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.05) 100%); border-color: rgba(79, 172, 254, 0.2);">
+                <div class="section-header">
+                    <h3><i class="fas fa-shield-virus" style="color: #4facfe;"></i> Blocklist</h3>
+                </div>
+                <form method="POST" action="{{ url_for('add_threat_intel') }}" class="block-form">
+                    <input type="text" name="indicator" placeholder="Domain / IP / Email" required>
+                    <div class="form-row">
+                        <select name="indicator_type">
+                            <option value="domain">🌐 Domain</option>
+                            <option value="ip">📡 IP</option>
+                            <option value="email">📧 Email</option>
+                        </select>
+                        <select name="threat_type">
+                            <option value="malicious">☠️ Malicious</option>
+                            <option value="phishing">🎣 Phishing</option>
+                            <option value="spam">📨 Spam</option>
+                        </select>
+                        <button type="submit">+ Block</button>
+                    </div>
+                </form>
+                <p class="hint"><i class="fas fa-info-circle"></i> Add suspicious domains, IPs, or emails to automatically block threats</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Dashboard Styles - Vibrant Theme */
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 0;
+}
+
+/* Top Bar */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.05));
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #a0aec0;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Buttons */
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff !important;
+    padding: 0.7rem 1.8rem;
+    border-radius: 50px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+    color: #fff !important;
+}
+
+.btn-sm {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    color: #a0aec0 !important;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    cursor: pointer;
+    display: inline-block;
+}
+
+.btn-sm:hover {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff !important;
+    transform: translateY(-2px);
+}
+
+.link {
+    color: #f093fb !important;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.link:hover {
+    color: #f5576c !important;
+    text-decoration: underline;
+}
+
+/* Stats Cards */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    transform: rotate(45deg);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+    font-size: 1.8rem;
+    color: #fff;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* Quick Scan */
+.quick-scan {
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.08), rgba(245, 87, 108, 0.05));
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(240, 147, 251, 0.15);
+}
+
+.quick-scan h3 {
+    color: #e2e8f0;
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+}
+
+.scan-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}
+
+.scan-form input,
+.scan-form textarea {
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.scan-form input:focus,
+.scan-form textarea:focus {
+    outline: none;
+    border-color: #f093fb;
+    box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.1);
+}
+
+.scan-form textarea {
+    grid-column: 1 / -1;
+    resize: vertical;
+}
+
+.scan-form button {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: #fff;
+    padding: 0.7rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+}
+
+.scan-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(245, 87, 108, 0.5);
+}
+
+/* Section */
+.section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+}
+
+.section-header h3 {
+    color: #e2e8f0;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* Two Column */
+.two-col {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Table */
+.table-wrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    color: rgba(160, 174, 192, 0.8);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.table td {
+    padding: 0.6rem 0.8rem;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.table tr:hover td {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.time-badge {
+    background: rgba(79, 172, 254, 0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    color: #4facfe;
+}
+
+/* Score Bar */
+.score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-bar {
+    width: 60px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.score-fill.success { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+.score-fill.warning { background: linear-gradient(90deg, #f093fb, #f5576c); }
+.score-fill.danger { background: linear-gradient(90deg, #fc8181, #f5576c); }
+
+.score-text {
+    font-weight: 600;
+    font-size: 0.8rem;
+    min-width: 40px;
+}
+
+.score-text.success { color: #43e97b; }
+.score-text.warning { color: #f093fb; }
+.score-text.danger { color: #fc8181; }
+
+/* Badges */
+.badge {
+    padding: 0.15rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge.success { background: rgba(67, 233, 123, 0.2); color: #43e97b; }
+.badge.danger { background: rgba(245, 87, 108, 0.2); color: #f5576c; }
+.badge.warning { background: rgba(240, 147, 251, 0.2); color: #f093fb; }
+
+/* Alert Item */
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.alert-item.active {
+    background: rgba(245, 87, 108, 0.05);
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    border-left: 3px solid #f5576c;
+}
+
+.alert-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(245, 87, 108, 0.3);
+}
+
+.alert-dot.critical { background: #f5576c; }
+.alert-dot.high { background: #f093fb; }
+.alert-dot.medium { background: #4facfe; }
+.alert-dot.low { background: #43e97b; }
+
+.alert-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.alert-title {
+    font-weight: 600;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.alert-desc {
+    color: #a0aec0;
+    font-size: 0.8rem;
+}
+
+.alert-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.2rem;
+}
+
+.severity {
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.severity.critical { background: rgba(245, 87, 108, 0.2); color: #f5576c; }
+.severity.high { background: rgba(240, 147, 251, 0.2); color: #f093fb; }
+.severity.medium { background: rgba(79, 172, 254, 0.2); color: #4facfe; }
+.severity.low { background: rgba(67, 233, 123, 0.2); color: #43e97b; }
+
+.time {
+    color: #718096;
+    font-size: 0.7rem;
+}
+
+.resolve-btn {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    color: #fff;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(67, 233, 123, 0.3);
+}
+
+.resolve-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 20px rgba(67, 233, 123, 0.5);
+}
+
+.resolved {
+    color: #43e97b;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Block Form */
+.block-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.block-form input,
+.block-form select {
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.block-form input:focus,
+.block-form select:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.block-form select option {
+    background: #1a1a2e;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.8rem;
+}
+
+.form-row button {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #fff;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.form-row button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(79, 172, 254, 0.5);
+}
+
+.hint {
+    color: #718096;
+    font-size: 0.8rem;
+    margin: 0.5rem 0 0 0;
+}
+
+/* Empty State */
+.empty {
+    text-align: center;
+    padding: 2rem;
+    color: #a0aec0;
+}
+
+.empty i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.empty p {
+    margin: 0 0 0.5rem 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .scan-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.3rem;
+    }
+}
+</style>
+{% endblock %}

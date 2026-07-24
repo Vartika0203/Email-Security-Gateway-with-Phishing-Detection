@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze Email{% endblock %}
+
+{% block content %}
+<div class="analyze-container">
+    <!-- Header -->
+    <div class="analyze-header">
+        <div>
+            <h1><i class="fas fa-search" style="color: #4facfe;"></i> Analyze Email</h1>
+            <p>Paste an email to check for phishing, malware, and security threats</p>
+        </div>
+        <div class="header-badge">
+            <i class="fas fa-shield-alt"></i> AI-Powered Analysis
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="analyze-card">
+        <form method="POST" action="{{ url_for('analyze') }}" class="analyze-form">
+            <div class="form-grid">
+                <!-- Left Column -->
+                <div class="form-left">
+                    <div class="form-group">
+                        <label for="sender">
+                            <i class="fas fa-user" style="color: #4facfe;"></i> Sender Email <span class="required">*</span>
+                        </label>
+                        <input type="email" id="sender" name="sender" class="form-control" 
+                               placeholder="sender@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recipient">
+                            <i class="fas fa-user-check" style="color: #43e97b;"></i> Recipient Email
+                        </label>
+                        <input type="email" id="recipient" name="recipient" class="form-control" 
+                               placeholder="recipient@example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">
+                            <i class="fas fa-tag" style="color: #f093fb;"></i> Subject
+                        </label>
+                        <input type="text" id="subject" name="subject" class="form-control" 
+                               placeholder="Email subject line">
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="form-right">
+                    <div class="form-group full-width">
+                        <label for="body">
+                            <i class="fas fa-envelope" style="color: #f5576c;"></i> Email Body <span class="required">*</span>
+                        </label>
+                        <textarea id="body" name="body" class="form-control" 
+                                  placeholder="Paste the email content here..." required></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Headers Section -->
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="headers">
+                    <i class="fas fa-code" style="color: #ed8936;"></i> Email Headers <span class="optional">(Optional)</span>
+                </label>
+                <textarea id="headers" name="headers" class="form-control" 
+                          placeholder="Paste email headers here for SPF/DKIM/DMARC validation"
+                          rows="4"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn-analyze-submit">
+                <i class="fas fa-shield-alt"></i> Analyze Email
+            </button>
+        </form>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-row">
+        <div class="feature-box" style="background: linear-gradient(135deg, rgba(79,172,254,0.1), rgba(0,242,254,0.05)); border-color: rgba(79,172,254,0.2);">
+            <i class="fas fa-check-circle" style="color: #4facfe;"></i>
+            <h4>SPF/DKIM/DMARC</h4>
+            <p>Email authentication verification</p>
+        </div>
+        <div class="feature-box" style="background: linear-gradient(135deg, rgba(240,147,251,0.1), rgba(245,87,108,0.05)); border-color: rgba(245,87,108,0.2);">
+            <i class="fas fa-link" style="color: #f093fb;"></i>
+            <h4>URL Scanning</h4>
+            <p>Malicious link detection</p>
+        </div>
+        <div class="feature-box" style="background: linear-gradient(135deg, rgba(67,233,123,0.1), rgba(56,249,215,0.05)); border-color: rgba(67,233,123,0.2);">
+            <i class="fas fa-brain" style="color: #43e97b;"></i>
+            <h4>ML Classification</h4>
+            <p>AI-powered phishing detection</p>
+        </div>
+        <div class="feature-box" style="background: linear-gradient(135deg, rgba(237,137,54,0.1), rgba(245,87,108,0.05)); border-color: rgba(237,137,54,0.2);">
+            <i class="fas fa-bell" style="color: #ed8936;"></i>
+            <h4>Real-time Alerts</h4>
+            <p>Instant threat notifications</p>
+        </div>
+    </div>
+
+    <!-- Sample Email Templates -->
+    <div class="sample-section">
+        <h4><i class="fas fa-file-alt" style="color: #4facfe;"></i> Sample Test Emails</h4>
+        <div class="sample-grid">
+            <div class="sample-card" onclick="fillSample('phishing')">
+                <span class="badge danger">Phishing</span>
+                <p>"URGENT: Your account has been compromised. Click here to verify your identity immediately."</p>
+            </div>
+            <div class="sample-card" onclick="fillSample('clean')">
+                <span class="badge success">Clean</span>
+                <p>"Meeting scheduled for tomorrow at 10 AM. Please confirm your attendance."</p>
+            </div>
+            <div class="sample-card" onclick="fillSample('suspicious')">
+                <span class="badge warning">Suspicious</span>
+                <p>"Your PayPal account has been limited. Please update your information now."</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Analyze Page Styles */
+.analyze-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+
+/* Header */
+.analyze-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.05));
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(102,126,234,0.1);
+}
+
+.analyze-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.analyze-header p {
+    color: #a0aec0;
+    margin: 0;
+}
+
+.header-badge {
+    background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+    color: #667eea;
+    padding: 0.5rem 1.2rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid rgba(102,126,234,0.2);
+}
+
+.header-badge i {
+    color: #f093fb;
+}
+
+/* Main Card */
+.analyze-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    margin-bottom: 2rem;
+}
+
+.analyze-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 1.5rem;
+}
+
+.form-left,
+.form-right {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.form-group label {
+    color: #e2e8f0;
+    font-weight: 500;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-group label i {
+    font-size: 0.9rem;
+}
+
+.required {
+    color: #f5576c;
+    font-weight: 700;
+}
+
+.optional {
+    color: #718096;
+    font-weight: 400;
+    font-size: 0.8rem;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-control {
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    background: rgba(255,255,255,0.08);
+}
+
+.form-control::placeholder {
+    color: #718096;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Submit Button */
+.btn-analyze-submit {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+}
+
+.btn-analyze-submit:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 40px rgba(102,126,234,0.5);
+}
+
+.btn-analyze-submit:active {
+    transform: translateY(0);
+}
+
+/* Features Row */
+.features-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.feature-box {
+    padding: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.feature-box:hover {
+    transform: translateY(-3px);
+}
+
+.feature-box i {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.feature-box h4 {
+    color: #e2e8f0;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.feature-box p {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    margin: 0.2rem 0 0 0;
+}
+
+/* Sample Section */
+.sample-section {
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.sample-section h4 {
+    color: #e2e8f0;
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+}
+
+.sample-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.sample-card {
+    background: rgba(255,255,255,0.05);
+    padding: 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.sample-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+    border-color: rgba(102,126,234,0.3);
+}
+
+.sample-card .badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.sample-card .badge.danger {
+    background: rgba(245,87,108,0.2);
+    color: #f5576c;
+}
+
+.sample-card .badge.success {
+    background: rgba(67,233,123,0.2);
+    color: #43e97b;
+}
+
+.sample-card .badge.warning {
+    background: rgba(240,147,251,0.2);
+    color: #f093fb;
+}
+
+.sample-card p {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .analyze-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.2rem;
+    }
+    
+    .analyze-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .analyze-card {
+        padding: 1.2rem;
+    }
+    
+    .features-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .sample-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .features-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Sample email filler
+function fillSample(type) {
+    const samples = {
+        'phishing': {
+            sender: 'security@secure-update-verify.com',
+            recipient: 'user@example.com',
+            subject: 'URGENT: Account Security Alert',
+            body: 'Dear User,\n\nWe have detected suspicious activity on your account. Your account will be suspended within 24 hours unless you verify your identity.\n\nClick here to verify: http://bit.ly/verify-account-urgent\n\nFailure to verify will result in permanent account suspension.\n\nSecurity Team'
+        },
+        'clean': {
+            sender: 'hr@company.com',
+            recipient: 'employee@company.com',
+            subject: 'Team Meeting Schedule',
+            body: 'Hi Team,\n\nOur weekly meeting is scheduled for tomorrow at 10 AM in Conference Room A.\n\nPlease confirm your attendance.\n\nBest regards,\nHR Department'
+        },
+        'suspicious': {
+            sender: 'support@paypal-security.com',
+            recipient: 'user@paypal.com',
+            subject: 'PayPal Account Limited',
+            body: 'Dear Customer,\n\nYour PayPal account has been temporarily limited due to unusual activity.\n\nTo restore your account, please confirm your identity:\nhttp://paypal-verify-secure.com/confirm\n\nThank you for your cooperation.\n\nPayPal Security'
+        }
+    };
+    
+    const data = samples[type];
+    if (data) {
+        document.getElementById('sender').value = data.sender;
+        document.getElementById('recipient').value = data.recipient;
+        document.getElementById('subject').value = data.subject;
+        document.getElementById('body').value = data.body;
+    }
+}
+</script>
+{% endblock %}

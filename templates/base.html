@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Security Gateway - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body style="background: linear-gradient(135deg, #0c0e1a 0%, #1a1a2e 50%, #2d1b69 100%);">
+    <nav style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <a href="{{ url_for('index') }}" style="font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-shield-alt" style="-webkit-text-fill-color: initial; color: #667eea;"></i> Email Security
+            </a>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 10px; transition: all 0.3s ease; {% if request.endpoint == 'index' %}background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)); color: #fff;{% endif %}">Home</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 10px; transition: all 0.3s ease; {% if request.endpoint == 'dashboard' %}background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)); color: #fff;{% endif %}">Dashboard</a>
+                <a href="{{ url_for('analyze') }}" class="nav-link {% if request.endpoint == 'analyze' %}active{% endif %}" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 10px; transition: all 0.3s ease; {% if request.endpoint == 'analyze' %}background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)); color: #fff;{% endif %}">Analyze</a>
+                <a href="{{ url_for('quarantine') }}" class="nav-link {% if request.endpoint == 'quarantine' %}active{% endif %}" style="color: #a0aec0; text-decoration: none; padding: 0.5rem 1rem; border-radius: 10px; transition: all 0.3s ease; {% if request.endpoint == 'quarantine' %}background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2)); color: #fff;{% endif %}">Quarantine</a>
+            </div>
+        </div>
+    </nav>
+
+    <main style="max-width: 1200px; margin: 2rem auto; padding: 0 2rem; flex: 1;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 2rem;">
+                    {% for category, message in messages %}
+                        <div style="padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem; 
+                            {% if category == 'success' %}background: rgba(67,233,123,0.15); border: 1px solid rgba(67,233,123,0.2); color: #43e97b;
+                            {% elif category == 'danger' %}background: rgba(245,87,108,0.15); border: 1px solid rgba(245,87,108,0.2); color: #f5576c;
+                            {% elif category == 'warning' %}background: rgba(240,147,251,0.15); border: 1px solid rgba(240,147,251,0.2); color: #f093fb;
+                            {% else %}background: rgba(79,172,254,0.15); border: 1px solid rgba(79,172,254,0.2); color: #4facfe;{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.2); margin-top: auto;">
+        <p>&copy; 2026 Email Security Gateway - Built with ❤️</p>
+    </footer>
+</body>
+</html>

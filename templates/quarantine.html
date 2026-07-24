@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}Quarantine{% endblock %}
+
+{% block content %}
+<div class="quarantine-container">
+    <!-- Header -->
+   <!-- Header -->
+<div class="quarantine-header">
+    <div>
+        <h1><i class="fas fa-lock" style="color: #f093fb;"></i> Quarantine Management</h1>
+        <p>Review and manage emails that have been flagged as suspicious or malicious</p>
+    </div>
+    <div class="quarantine-stats">
+        <span class="stat-badge">
+            <i class="fas fa-envelope"></i> {{ emails|length if emails else 0 }} Quarantined
+        </span>
+    </div>
+</div>
+
+    <!-- Quarantine Table -->
+    <div class="quarantine-card">
+        {% if emails %}
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Sender</th>
+                            <th>Subject</th>
+                            <th>Phishing Score</th>
+                            <th>Threat Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for email in emails %}
+                        <tr>
+                            <td>
+                                <span class="time-badge">{{ email.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </td>
+                            <td>
+                                <span class="sender-email">{{ email.sender|truncate(25) }}</span>
+                            </td>
+                            <td>
+                                <span class="subject-text">{{ email.subject|truncate(30) }}</span>
+                            </td>
+                            <td>
+                                <div class="score-wrap">
+                                    <div class="score-bar">
+                                        <div class="score-fill danger" style="width: {{ email.phishing_score }}%;"></div>
+                                    </div>
+                                    <span class="score-text danger">{{ "%.0f"|format(email.phishing_score) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="severity-badge {{ email.severity }}">{{ email.threat_type or 'phishing' }}</span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('email_detail', email_id=email.id) }}" class="btn-action view" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('release_email', email_id=email.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-action release" title="Release from quarantine">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('delete_email', email_id=email.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-action delete" title="Delete" onclick="return confirm('Are you sure you want to permanently delete this email?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>No emails in quarantine</h3>
+                <p>All clear! No suspicious emails have been quarantined.</p>
+                <a href="{{ url_for('analyze') }}" class="btn-primary">
+                    <i class="fas fa-search"></i> Analyze an Email
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-box" style="background: linear-gradient(135deg, rgba(79,172,254,0.08), rgba(0,242,254,0.03)); border-color: rgba(79,172,254,0.15);">
+            <i class="fas fa-info-circle" style="color: #4facfe;"></i>
+            <div>
+                <h4>What is Quarantine?</h4>
+                <p>Emails that are flagged as phishing, malicious, or suspicious are placed in quarantine to prevent them from reaching your inbox.</p>
+            </div>
+        </div>
+        <div class="info-box" style="background: linear-gradient(135deg, rgba(67,233,123,0.08), rgba(56,249,215,0.03)); border-color: rgba(67,233,123,0.15);">
+            <i class="fas fa-check-circle" style="color: #43e97b;"></i>
+            <div>
+                <h4>What can I do?</h4>
+                <ul>
+                    <li><strong>View</strong> - Examine the email details</li>
+                    <li><strong>Release</strong> - Move back to inbox (if false positive)</li>
+                    <li><strong>Delete</strong> - Permanently remove</li>
+                </ul>
+            </div>
+        </div>
+        <div class="info-box" style="background: linear-gradient(135deg, rgba(240,147,251,0.08), rgba(245,87,108,0.03)); border-color: rgba(245,87,108,0.15);">
+            <i class="fas fa-shield-virus" style="color: #f093fb;"></i>
+            <div>
+                <h4>Threat Protection</h4>
+                <p>Our AI continuously learns from new threats to improve detection and keep your organization safe.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Quarantine Container */
+.quarantine-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+
+/* Header */
+.quarantine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.05));
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(102,126,234,0.1);
+}
+
+.quarantine-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.quarantine-header p {
+    color: #a0aec0;
+    margin: 0.2rem 0 0 0;
+}
+
+.quarantine-stats {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.stat-badge {
+    background: linear-gradient(135deg, rgba(240,147,251,0.2), rgba(245,87,108,0.2));
+    padding: 0.5rem 1.2rem;
+    border-radius: 50px;
+    color: #f093fb;
+    font-weight: 500;
+    border: 1px solid rgba(240,147,251,0.15);
+}
+
+.stat-badge i {
+    margin-right: 0.3rem;
+}
+
+/* Quarantine Card */
+.quarantine-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 2rem;
+    min-height: 200px;
+}
+
+/* Table */
+.table-wrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    text-align: left;
+    padding: 0.8rem 1rem;
+    color: rgba(160,174,192,0.8);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.table td {
+    padding: 0.8rem 1rem;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.table tr:hover td {
+    background: rgba(102,126,234,0.05);
+}
+
+.time-badge {
+    background: rgba(79,172,254,0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    color: #4facfe;
+}
+
+.sender-email {
+    color: #e2e8f0;
+}
+
+.subject-text {
+    color: #a0aec0;
+}
+
+/* Score Bar */
+.score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-bar {
+    width: 60px;
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.score-fill.danger {
+    background: linear-gradient(90deg, #fc8181, #f5576c);
+}
+
+.score-text {
+    font-weight: 600;
+    font-size: 0.8rem;
+    min-width: 40px;
+}
+
+.score-text.danger {
+    color: #fc8181;
+}
+
+/* Severity Badge */
+.severity-badge {
+    padding: 0.2rem 0.7rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.severity-badge.critical {
+    background: rgba(245,87,108,0.2);
+    color: #f5576c;
+}
+
+.severity-badge.high {
+    background: rgba(240,147,251,0.2);
+    color: #f093fb;
+}
+
+.severity-badge.medium {
+    background: rgba(79,172,254,0.2);
+    color: #4facfe;
+}
+
+.severity-badge.low {
+    background: rgba(67,233,123,0.2);
+    color: #43e97b;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.btn-action.view {
+    background: rgba(79,172,254,0.15);
+    color: #4facfe;
+}
+
+.btn-action.view:hover {
+    background: #4facfe;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.btn-action.release {
+    background: rgba(67,233,123,0.15);
+    color: #43e97b;
+}
+
+.btn-action.release:hover {
+    background: #43e97b;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.btn-action.delete {
+    background: rgba(245,87,108,0.15);
+    color: #f5576c;
+}
+
+.btn-action.delete:hover {
+    background: #f5576c;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: #667eea;
+    margin-bottom: 1rem;
+}
+
+.empty-icon i {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.empty-state h3 {
+    color: #e2e8f0;
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.empty-state p {
+    color: #a0aec0;
+    margin: 0 0 1.5rem 0;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    padding: 0.7rem 1.8rem;
+    border-radius: 50px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(102,126,234,0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 40px rgba(102,126,234,0.5);
+    color: #fff;
+}
+
+/* Info Section */
+.info-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.info-box {
+    padding: 1.2rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.info-box i {
+    font-size: 1.5rem;
+    margin-top: 0.2rem;
+}
+
+.info-box h4 {
+    color: #e2e8f0;
+    margin: 0 0 0.3rem 0;
+}
+
+.info-box p {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.info-box ul {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.info-box ul li {
+    margin-bottom: 0.2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .quarantine-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.2rem;
+    }
+    
+    .quarantine-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .quarantine-card {
+        padding: 1rem;
+    }
+    
+    .info-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-badge {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+    }
+    
+    .score-bar {
+        width: 40px;
+    }
+}
+</style>
+{% endblock %}
